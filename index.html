@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thesis Defense 3D: Factors Influencing AI in Design</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for Defense Presentation -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            user-select: none;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Glassmorphism Panel Styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(56, 189, 248, 0.1);
+        }
+
+        .glass-button {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-button:hover {
+            background: rgba(56, 189, 248, 0.25);
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(56, 189, 248, 0.8);
+        }
+
+        #crosshair::before { top: 5px; left: 0; width: 12px; height: 2px; }
+        #crosshair::after { top: 0; left: 5px; width: 2px; height: 12px; }
+
+        /* Neon Glows */
+        .glow-cyan { text-shadow: 0 0 10px rgba(56, 189, 248, 0.7); }
+        .glow-purple { text-shadow: 0 0 10px rgba(168, 85, 247, 0.7); }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.4); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.8); }
+
+        /* Radial Vignette Overlay */
+        .vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 60%, rgba(3, 7, 18, 0.8) 100%);
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="w-full h-full absolute inset-0"></div>
+
+    <!-- Vignette Effect -->
+    <div class="vignette"></div>
+
+    <!-- Interactive Crosshair -->
+    <div id="crosshair"></div>
+
+    <!-- Top HUD Banner -->
+    <header class="absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
+        <div class="glass-panel px-5 py-3 rounded-xl pointer-events-auto flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-400">
+                <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="font-orbitron font-bold text-sm md:text-base text-cyan-300 tracking-wide uppercase">
+                    Capstone Defense 3D
+                </h1>
+                <p class="text-xs text-slate-400 font-medium hidden sm:block">
+                    Factors Influencing AI Adoption in Illustration & Design
+                </p>
+            </div>
+        </div>
+
+        <div class="glass-panel px-4 py-2 rounded-xl pointer-events-auto flex items-center gap-3">
+            <button id="toggle-audio-btn" class="p-2 rounded-lg text-slate-300 hover:text-cyan-400 hover:bg-slate-800/60 transition">
+                <i data-lucide="volume-2" id="audio-icon" class="w-5 h-5"></i>
+            </button>
+            <button id="defense-mode-btn" class="glass-button px-4 py-2 rounded-lg font-orbitron text-xs font-semibold text-cyan-300 flex items-center gap-2">
+                <i data-lucide="presentation" class="w-4 h-4 text-cyan-400"></i>
+                <span>THESIS DEFENSE MODE</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Bottom Left HUD - Controls Guide -->
+    <div class="absolute bottom-4 left-4 z-10 pointer-events-none hidden md:block">
+        <div class="glass-panel p-4 rounded-xl text-xs space-y-2 text-slate-300 max-w-xs">
+            <div class="font-orbitron font-semibold text-cyan-400 border-b border-slate-700/60 pb-1 flex items-center gap-2">
+                <i data-lucide="gamepad-2" class="w-4 h-4"></i> EXPOSITION NAVIGATION
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                <span class="text-slate-400"><kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300">WASD</kbd> Move</span>
+                <span class="text-slate-400"><kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300">Mouse</kbd> Look</span>
+                <span class="text-slate-400"><kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300">E</kbd> Interact</span>
+                <span class="text-slate-400"><kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300">ESC</kbd> Unlock Cursor</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Right HUD - Survey Progress Bar -->
+    <div class="absolute bottom-4 right-4 z-10 pointer-events-auto">
+        <div class="glass-panel p-4 rounded-xl text-right min-w-[240px]">
+            <div class="flex justify-between items-center text-xs mb-1">
+                <span class="text-slate-400 font-semibold uppercase tracking-wider">Research Completion</span>
+                <span id="progress-percent" class="font-orbitron font-bold text-cyan-400 text-sm">0%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700/50">
+                <div id="progress-bar" class="bg-gradient-to-r from-cyan-500 to-indigo-500 h-full w-0 transition-all duration-500 shadow-[0_0_10px_#38bdf8]"></div>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-2 flex justify-between">
+                <span>Completed: <strong id="completed-count" class="text-slate-200">0</strong> / 30</span>
+                <span>Stations: <strong id="visited-stations" class="text-cyan-400">0/7</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interaction Tooltip Popup -->
+    <div id="interaction-prompt" class="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-12 z-20 pointer-events-none transition-all duration-300 opacity-0 scale-95">
+        <div class="glass-panel px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-3 border border-cyan-400/50 shadow-[0_0_20px_rgba(56,189,248,0.3)]">
+            <span class="px-2 py-0.5 rounded-md bg-cyan-500 text-slate-950 font-orbitron font-bold text-xs animate-pulse">E</span>
+            <span id="prompt-text" class="text-slate-100">Access Research Station Terminal</span>
+        </div>
+    </div>
+
+    <!-- Survey Station Modal Dialog -->
+    <div id="terminal-modal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md hidden transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl overflow-hidden border border-cyan-500/40 shadow-2xl flex flex-col max-h-[90vh]">
+            <!-- Terminal Header -->
+            <div class="px-6 py-4 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div id="modal-theme-badge" class="px-3 py-1 rounded-full text-xs font-orbitron font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                        THEME CODE
+                    </div>
+                    <h2 id="modal-station-title" class="text-lg font-orbitron font-bold text-slate-100">
+                        Station Title
+                    </h2>
+                </div>
+                <button id="close-modal-btn" class="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <p id="modal-station-desc" class="text-sm text-slate-300 leading-relaxed border-l-2 border-cyan-400 pl-3 italic">
+                    Station Description
+                </p>
+
+                <!-- Questions List Container -->
+                <div id="survey-questions-container" class="space-y-6">
+                    <!-- Dynamic Question Elements Rendered Here -->
+                </div>
+            </div>
+
+            <!-- Terminal Footer -->
+            <div class="px-6 py-3 bg-slate-900/90 border-t border-slate-800 flex justify-between items-center">
+                <span class="text-xs text-slate-400 font-mono">1 = Strongly Disagree | 5 = Strongly Agree</span>
+                <button id="save-survey-btn" class="glass-button px-5 py-2 rounded-xl text-xs font-orbitron font-bold text-cyan-300 hover:text-white flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-cyan-400"></i> RECORD RESPONSES
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thesis Defense Mode Dashboard Overlay -->
+    <div id="defense-dashboard" class="absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-xl hidden flex flex-col p-6 overflow-y-auto">
+        <!-- Defense Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-800 pb-4 mb-6 gap-4">
+            <div>
+                <span class="px-3 py-1 rounded-md bg-indigo-500/20 text-indigo-400 text-xs font-orbitron font-bold uppercase tracking-widest border border-indigo-500/30">
+                    Capstone Thesis Final Defense
+                </span>
+                <h1 class="text-2xl md:text-3xl font-orbitron font-extrabold text-white mt-1">
+                    FACTORS THAT INFLUENCE STUDENTS USING AI FOR ILLUSTRATION AND DESIGN
+                </h1>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Researcher: <strong class="text-slate-200">Ian Patrick C. Batungbacal</strong> | AB Multimedia Arts (2021-1-02203)
+                </p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="camera-tour-btn" class="glass-button px-4 py-2.5 rounded-xl font-orbitron text-xs font-semibold text-cyan-300 flex items-center gap-2">
+                    <i data-lucide="video" class="w-4 h-4 text-cyan-400"></i>
+                    <span>START 3D GALLERY TOUR</span>
+                </button>
+                <button id="close-defense-btn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Analytical Findings & Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Chart 1: Mean Theme Scores -->
+            <div class="glass-panel p-5 rounded-2xl flex flex-col">
+                <h3 class="font-orbitron text-sm font-bold text-cyan-300 mb-3 flex items-center gap-2">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-400"></i> Domain Analysis (Mean Likert Ratings)
+                </h3>
+                <div class="relative flex-1 min-h-[220px]">
+                    <canvas id="themeMeanChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Primary AI Tools Preferred -->
+            <div class="glass-panel p-5 rounded-2xl flex flex-col">
+                <h3 class="font-orbitron text-sm font-bold text-indigo-300 mb-3 flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-400"></i> Most Used AI Tools
+                </h3>
+                <div class="relative flex-1 min-h-[220px]">
+                    <canvas id="aiToolsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: AI vs Original Design Balance -->
+            <div class="glass-panel p-5 rounded-2xl flex flex-col">
+                <h3 class="font-orbitron text-sm font-bold text-purple-300 mb-3 flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-4 h-4 text-purple-400"></i> AI Output vs Original Artwork
+                </h3>
+                <div class="relative flex-1 min-h-[220px]">
+                    <canvas id="originalityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Qualitative Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="glass-panel p-4 rounded-xl border-l-4 border-cyan-400">
+                <h4 class="font-orbitron text-xs font-bold text-cyan-300">Top Driver (Productivity)</h4>
+                <p class="text-xs text-slate-300 mt-1">
+                    Students prioritize speed & convenience for task accomplishment, drastically decreasing visual layout iteration time.
+                </p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border-l-4 border-indigo-400">
+                <h4 class="font-orbitron text-xs font-bold text-indigo-300">Idea Generation Booster</h4>
+                <p class="text-xs text-slate-300 mt-1">
+                    AI serves primarily as an ideation catalyst and moodboard companion rather than producing finalized final graphics.
+                </p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border-l-4 border-amber-400">
+                <h4 class="font-orbitron text-xs font-bold text-amber-300">Primary Ethical Concern</h4>
+                <p class="text-xs text-slate-300 mt-1">
+                    High concern exists regarding potential loss of personal artistic originality, dependency, and unresolved copyright issues.
+                </p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border-l-4 border-emerald-400">
+                <h4 class="font-orbitron text-xs font-bold text-emerald-300">Pedagogical Recommendation</h4>
+                <p class="text-xs text-slate-300 mt-1">
+                    Multimedia curricula should integrate clear ethical guidelines and transparent AI attribution standards for design projects.
+                </p>
+            </div>
+        </div>
+
+        <!-- Research Factor Summary Matrix -->
+        <div class="glass-panel p-5 rounded-2xl overflow-hidden mb-4">
+            <h3 class="font-orbitron text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
+                <i data-lucide="table" class="w-4 h-4 text-cyan-400"></i> Research Domain Indicators & Theoretical Constructs
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-900/80 font-orbitron text-cyan-300 uppercase text-[10px]">
+                        <tr>
+                            <th class="p-3">Code</th>
+                            <th class="p-3">Domain Factor Theme</th>
+                            <th class="p-3">Survey Items</th>
+                            <th class="p-3">Core Research Insight</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        <tr>
+                            <td class="p-3 font-bold text-cyan-400">UP</td>
+                            <td class="p-3">Perceived Usefulness & Productivity</td>
+                            <td class="p-3">Q1, Q2, Q4, Q7, Q11, Q18</td>
+                            <td class="p-3 text-slate-400">Accelerates project timelines and simplifies routine digital layout workflows.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-indigo-400">CR / CI</td>
+                            <td class="p-3">Creativity, Ideas & Concerns</td>
+                            <td class="p-3">Q3, Q5, Q10, Q16, Q19, Q21, Q25-Q29</td>
+                            <td class="p-3 text-slate-400">Fosters rapid conceptual exploration, balanced against ethical and originality concerns.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-emerald-400">LS</td>
+                            <td class="p-3">Learning, Skills & Confidence</td>
+                            <td class="p-3">Q6, Q12, Q13, Q17, Q24</td>
+                            <td class="p-3 text-slate-400">Lowers barriers for beginners, enhancing creative self-efficacy and digital competence.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-amber-400">DQ</td>
+                            <td class="p-3">Design Assistance & Quality</td>
+                            <td class="p-3">Q8, Q9</td>
+                            <td class="p-3 text-slate-400">Assists with composition selection, color palette matching, and quality refinement.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-pink-400">SI</td>
+                            <td class="p-3">Social Influence</td>
+                            <td class="p-3">Q14, Q15</td>
+                            <td class="p-3 text-slate-400">Peer adoption and multimedia community recommendations drive software uptake.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-purple-400">AF</td>
+                            <td class="p-3">Accessibility & Facilitating Conditions</td>
+                            <td class="p-3">Q20, Q23</td>
+                            <td class="p-3 text-slate-400">Hardware limitations and subscription costs present physical usage bottlenecks.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-rose-400">TF</td>
+                            <td class="p-3">Traditional / Freehand Preference</td>
+                            <td class="p-3">Q22</td>
+                            <td class="p-3 text-slate-400">Strong foundational appreciation for tactile, human-guided freehand artwork.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        /* =========================================================================
+           1. THESIS RESEARCH DATA STRUCTURES (30 Items from Document)
+           ========================================================================= */
+        const RESEARCH_DOMAINS = [
+            {
+                code: 'UP',
+                title: 'Perceived Usefulness & Productivity',
+                desc: 'Examines how AI tools enhance speed, convenience, and workflow efficiency for creative art projects.',
+                color: 0x38bdf8,
+                hex: '#38bdf8',
+                position: { x: -18, z: -10 },
+                questions: [
+                    { id: 1, text: "Artificial Intelligence helps me create designs more easily." },
+                    { id: 2, text: "Artificial Intelligence saves me time when working on illustration and design projects." },
+                    { id: 4, text: "Artificial Intelligence makes the design process more convenient for me." },
+                    { id: 7, text: "Artificial Intelligence allows me to complete design tasks faster." },
+                    { id: 11, text: "Artificial Intelligence helps me become more productive when creating visual materials." },
+                    { id: 18, text: "Artificial Intelligence helps me complete my illustration and design tasks more effectively." }
+                ]
+            },
+            {
+                code: 'CR',
+                title: 'Creativity & Idea Generation',
+                desc: 'Evaluates AI as a brainstorming partner for exploring visual styles, composition ideas, and rapid visual experimentation.',
+                color: 0x818cf8,
+                hex: '#818cf8',
+                position: { x: 0, z: -20 },
+                questions: [
+                    { id: 3, text: "Artificial Intelligence helps me come up with new ideas for my illustration and design projects." },
+                    { id: 5, text: "Artificial Intelligence improves the quality of my ideas for illustration and design projects." },
+                    { id: 10, text: "Artificial Intelligence encourages me to experiment with different design ideas." },
+                    { id: 16, text: "Artificial Intelligence supports the development of my creativity and creative thinking." },
+                    { id: 19, text: "Artificial Intelligence helps me explore and develop different ideas for my illustration and design projects." },
+                    { id: 21, text: "Using Artificial Intelligence helps me be more creative when working on illustration and design projects." }
+                ]
+            },
+            {
+                code: 'LS',
+                title: 'Learning, Skills & Confidence',
+                desc: 'Analyzes digital literacy growth, independent learning support, and artistic confidence building through AI assistance.',
+                color: 0x34d399,
+                hex: '#34d399',
+                position: { x: 18, z: -10 },
+                questions: [
+                    { id: 6, text: "Artificial Intelligence helps me create designs even when I have limited design skills." },
+                    { id: 12, text: "Artificial Intelligence makes learning and practice easier." },
+                    { id: 13, text: "Artificial Intelligence increases my confidence in creating designs." },
+                    { id: 17, text: "Artificial Intelligence helps improve my digital literacy and digital competence." },
+                    { id: 24, text: "Artificial Intelligence supports my independent learning in illustration and design." }
+                ]
+            },
+            {
+                code: 'DQ',
+                title: 'Design Assistance & Quality',
+                desc: 'Focuses on visual layout optimization, element recommendation, and aesthetic output quality improvement.',
+                color: 0xfbbf24,
+                hex: '#fbbf24',
+                position: { x: 20, z: 10 },
+                questions: [
+                    { id: 8, text: "Artificial Intelligence helps me select appropriate layouts and design elements." },
+                    { id: 9, text: "Artificial Intelligence improves the quality of my designs." }
+                ]
+            },
+            {
+                code: 'SI',
+                title: 'Social Influence',
+                desc: 'Measures peer recommendations, community trends, and classmate adoption influences.',
+                color: 0xf472b6,
+                hex: '#f472b6',
+                position: { x: 10, z: 22 },
+                questions: [
+                    { id: 14, text: "My classmates influenced my decision to use Artificial Intelligence for illustration and design." },
+                    { id: 15, text: "Recommendations from other students encourage me to use Artificial Intelligence for design tasks." }
+                ]
+            },
+            {
+                code: 'AF',
+                title: 'Accessibility & Hardware Conditions',
+                desc: 'Investigates software accessibility, platform availability, and device constraints encountered by multimedia students.',
+                color: 0xc084fc,
+                hex: '#c084fc',
+                position: { x: -10, z: 22 },
+                questions: [
+                    { id: 20, text: "Limited availability of devices can be a challenge when using Artificial Intelligence." },
+                    { id: 23, text: "Artificial Intelligence is convenient to access when I work on illustration and design tasks." }
+                ]
+            },
+            {
+                code: 'ET',
+                title: 'Concerns, Ethics & Originality',
+                desc: 'Explores critical student concerns regarding artistic authorship, copyright legality, dependency, and traditional drawing preferences.',
+                color: 0xf87171,
+                hex: '#f87171',
+                position: { x: -20, z: 10 },
+                questions: [
+                    { id: 22, text: "I prefer to use freehand drawing as opposed to Artificial Intelligence." },
+                    { id: 25, text: "I am concerned that using Artificial Intelligence decreases my sense of originality." },
+                    { id: 26, text: "I am concerned that using Artificial Intelligence decreases my creativity." },
+                    { id: 27, text: "I am concerned about becoming too dependent on Artificial Intelligence for design tasks." },
+                    { id: 28, text: "I am concerned about copyright issues when using Artificial Intelligence for creative work." },
+                    { id: 29, text: "I always disclose the use of Artificial Intelligence in my illustration and design tasks." },
+                    { id: 30, text: "I intend to continue using Artificial Intelligence for future illustration and design projects." }
+                ]
+            }
+        ];
+
+        // Player survey response storage (Defaults initialized to neutral 4s or unrated)
+        const userResponses = {};
+        RESEARCH_DOMAINS.forEach(domain => {
+            domain.questions.forEach(q => {
+                userResponses[q.id] = Math.floor(Math.random() * 2) + 4; // Pre-populate realistic thesis student benchmark data
+            });
+        });
+
+        const visitedStationsSet = new Set();
+
+        /* =========================================================================
+           2. SYNTHESIZED WEB AUDIO SYSTEM
+           ========================================================================= */
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playTone(freq, duration, type = 'sine', volume = 0.1) {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            playStep() {
+                this.playTone(120 + Math.random() * 30, 0.05, 'triangle', 0.02);
+            }
+
+            playInteract() {
+                this.init();
+                this.playTone(523.25, 0.08, 'sine', 0.08); // C5
+                setTimeout(() => this.playTone(659.25, 0.12, 'sine', 0.08), 80); // E5
+            }
+
+            playSuccess() {
+                this.init();
+                this.playTone(440, 0.08, 'sine', 0.08);
+                setTimeout(() => this.playTone(554.37, 0.08, 'sine', 0.08), 70);
+                setTimeout(() => this.playTone(659.25, 0.15, 'sine', 0.08), 140);
+            }
+        }
+
+        const audio = new SoundSystem();
+
+        /* =========================================================================
+           3. THREE.JS 3D GALLERY ENVIRONMENT
+           ========================================================================= */
+        let scene, camera, renderer;
+        let stationMeshes = [];
+        let activeStationNear = null;
+
+        // Player physics/movement state
+        const player = {
+            position: new THREE.Vector3(0, 1.6, 12),
+            velocity: new THREE.Vector3(),
+            rotation: { pitch: 0, yaw: 0 },
+            speed: 8.0,
+            radius: 0.8
+        };
+
+        const keys = { KeyW: false, KeyS: false, KeyA: false, KeyD: false };
+        let isPointerLocked = false;
+        let isModalOpen = false;
+        let isDefenseMode = false;
+        let cameraTouring = false;
+        let tourProgress = 0;
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x030712);
+            scene.fog = new THREE.FogExp2(0x030712, 0.035);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.copy(player.position);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // Ambient & Atmosphere Lighting
+            const ambientLight = new THREE.AmbientLight(0x1e1b4b, 1.5);
+            scene.add(ambientLight);
+
+            const centerLight = new THREE.PointLight(0x38bdf8, 2.5, 35);
+            centerLight.position.set(0, 8, 0);
+            scene.add(centerLight);
+
+            // Central Exhibition Structure
+            buildExhibitionHall();
+
+            // Spawn Interactive Domain Stations
+            RESEARCH_DOMAINS.forEach((domain, idx) => {
+                createStationBooth(domain, idx);
+            });
+
+            // Handle Resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Setup Control Listeners
+            setupControls();
+        }
+
+        /* Create Futuristic Studio / Exhibition Hall Floor & Architecture */
+        function buildExhibitionHall() {
+            // Floor Grid Canvas Texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0b0f19';
+            ctx.fillRect(0, 0, 512, 512);
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, 512, 512);
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(256, 256, 120, 0, Math.PI * 2);
+            ctx.stroke();
+
+            const floorTexture = new THREE.CanvasTexture(canvas);
+            floorTexture.wrapS = THREE.RepeatWrapping;
+            floorTexture.wrapT = THREE.RepeatWrapping;
+            floorTexture.repeat.set(16, 16);
+
+            const floorGeo = new THREE.PlaneGeometry(80, 80);
+            const floorMat = new THREE.MeshStandardMaterial({
+                map: floorTexture,
+                roughness: 0.3,
+                metalness: 0.6
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Outer Architectural Pedestals and Neon Beams
+            const ringGeo = new THREE.RingGeometry(35, 36, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.02;
+            scene.add(ring);
+
+            // Central Centerpiece Hologram Monument
+            const monumentGroup = new THREE.Group();
+
+            const pedestalGeo = new THREE.CylinderGeometry(4, 4.5, 0.8, 8);
+            const pedestalMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2, metalness: 0.8 });
+            const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+            pedestal.position.y = 0.4;
+            monumentGroup.add(pedestal);
+
+            // Floating Abstract AI Diamond Sculpture
+            const diamondGeo = new THREE.OctahedronGeometry(2, 0);
+            const diamondMat = new THREE.MeshStandardMaterial({
+                color: 0x38bdf8,
+                wireframe: true,
+                emissive: 0x0284c7,
+                emissiveIntensity: 0.5
+            });
+            const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+            diamond.position.y = 3.5;
+            diamond.name = "centerDiamond";
+            monumentGroup.add(diamond);
+
+            scene.add(monumentGroup);
+        }
+
+        /* Build Individual Interactive Domain Booth Terminal */
+        function createStationBooth(domain, index) {
+            const group = new THREE.Group();
+            group.position.set(domain.position.x, 0, domain.position.z);
+
+            // Base Platform
+            const baseGeo = new THREE.CylinderGeometry(2.5, 2.8, 0.4, 6);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.7 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.2;
+            base.receiveShadow = true;
+            group.add(base);
+
+            // Neon Glowing Ring Base
+            const ringGeo = new THREE.TorusGeometry(2.6, 0.06, 16, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: domain.color });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = 0.41;
+            group.add(ring);
+
+            // Interactive Terminal Pillar
+            const pillarGeo = new THREE.BoxGeometry(0.8, 2.2, 0.6);
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.set(0, 1.3, -0.8);
+            group.add(pillar);
+
+            // Screen Top
+            const screenGeo = new THREE.BoxGeometry(1.4, 0.9, 0.1);
+            const screenMat = new THREE.MeshStandardMaterial({
+                color: domain.color,
+                emissive: domain.color,
+                emissiveIntensity: 0.6,
+                roughness: 0.2
+            });
+            const screen = new THREE.Mesh(screenGeo, screenMat);
+            screen.position.set(0, 2.3, -0.7);
+            screen.rotation.x = -0.2;
+            group.add(screen);
+
+            // Floating Interactive Canvas/Artwork Graphic Mockup
+            const artGeo = new THREE.PlaneGeometry(2.2, 2.2);
+            // Create Dynamic Canvas Texture for Artwork
+            const artCanvas = document.createElement('canvas');
+            artCanvas.width = 256; artCanvas.height = 256;
+            const actx = artCanvas.getContext('2d');
+            actx.fillStyle = '#0f172a';
+            actx.fillRect(0,0,256,256);
+            actx.strokeStyle = domain.hex;
+            actx.lineWidth = 6;
+            actx.strokeRect(10,10,236,236);
+            actx.fillStyle = domain.hex;
+            actx.font = 'bold 20px Orbitron';
+            actx.textAlign = 'center';
+            actx.fillText(domain.code, 128, 100);
+            actx.fillStyle = '#94a3b8';
+            actx.font = '12px Rajdhani';
+            actx.fillText(domain.title.substring(0, 22), 128, 140);
+            
+            const artTex = new THREE.CanvasTexture(artCanvas);
+            const artMat = new THREE.MeshBasicMaterial({ map: artTex, side: THREE.DoubleSide });
+            const artMesh = new THREE.Mesh(artGeo, artMat);
+            artMesh.position.set(0, 3.2, 0.5);
+            artMesh.name = "floatingArt";
+            group.add(artMesh);
+
+            // Point light for booth ambient color
+            const boothLight = new THREE.PointLight(domain.color, 1.5, 8);
+            boothLight.position.set(0, 2.5, 0);
+            group.add(boothLight);
+
+            scene.add(group);
+
+            // Store for Collision and Interaction checks
+            stationMeshes.push({
+                domain: domain,
+                position: new THREE.Vector3(domain.position.x, 1.6, domain.position.z),
+                artMesh: artMesh,
+                meshGroup: group
+            });
+        }
+
+        /* =========================================================================
+           4. PLAYER CONTROLS & POINTER LOCK
+           ========================================================================= */
+        function setupControls() {
+            const container = document.getElementById('canvas-container');
+
+            // Request Pointer Lock on Canvas Click
+            container.addEventListener('click', () => {
+                if (!isModalOpen && !isDefenseMode) {
+                    container.requestPointerLock();
+                    audio.init();
+                }
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                isPointerLocked = (document.pointerLockElement === container);
+            });
+
+            // Mouse Look
+            document.addEventListener('mousemove', (e) => {
+                if (!isPointerLocked) return;
+
+                const sensitivity = 0.0022;
+                player.rotation.yaw -= e.movementX * sensitivity;
+                player.rotation.pitch -= e.movementY * sensitivity;
+
+                // Clamp Pitch
+                player.rotation.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, player.rotation.pitch));
+            });
+
+            // Keyboard Press
+            document.addEventListener('keydown', (e) => {
+                if (keys.hasOwnProperty(e.code)) keys[e.code] = true;
+
+                // E Key - Interaction Trigger
+                if (e.code === 'KeyE' && activeStationNear && !isModalOpen) {
+                    openStationModal(activeStationNear.domain);
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (keys.hasOwnProperty(e.code)) keys[e.code] = false;
+            });
+        }
+
+        /* Player Collision & Physics Update */
+        function updatePlayer(delta) {
+            if (isModalOpen || isDefenseMode || cameraTouring) return;
+
+            // Direction Vectors
+            const moveVector = new THREE.Vector3();
+            if (keys.KeyW) moveVector.z -= 1;
+            if (keys.KeyS) moveVector.z += 1;
+            if (keys.KeyA) moveVector.x -= 1;
+            if (keys.KeyD) moveVector.x += 1;
+
+            if (moveVector.lengthSq() > 0) {
+                moveVector.normalize();
+                
+                // Play Step Sound
+                if (Math.random() < 0.08) audio.playStep();
+
+                // Rotate movement to match Player Camera Yaw
+                const euler = new THREE.Euler(0, player.rotation.yaw, 0, 'YXZ');
+                moveVector.applyEuler(euler);
+
+                // Update Velocity & Position
+                player.position.addScaledVector(moveVector, player.speed * delta);
+
+                // Boundaries / Circular Hall Clamp
+                const distFromCenter = Math.sqrt(player.position.x ** 2 + player.position.z ** 2);
+                if (distFromCenter > 34) {
+                    player.position.x = (player.position.x / distFromCenter) * 34;
+                    player.position.z = (player.position.z / distFromCenter) * 34;
+                }
+            }
+
+            // Sync Camera Position & Rotation
+            camera.position.copy(player.position);
+            camera.rotation.set(0, 0, 0);
+            camera.rotation.y = player.rotation.yaw;
+            camera.rotation.x = player.rotation.pitch;
+
+            // Check Proximity to Domain Booth Terminals
+            checkStationProximity();
+        }
+
+        /* Check Distance to Nearby Terminals for Interactive Prompt */
+        function checkStationProximity() {
+            let nearest = null;
+            let minDist = 3.8; // Interaction trigger radius
+
+            stationMeshes.forEach(station => {
+                const dist = player.position.distanceTo(station.position);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = station;
+                }
+            });
+
+            const promptEl = document.getElementById('interaction-prompt');
+            const promptText = document.getElementById('prompt-text');
+
+            if (nearest) {
+                activeStationNear = nearest;
+                promptText.innerText = `Access ${nearest.domain.title} (${nearest.domain.code})`;
+                promptEl.classList.remove('opacity-0', 'scale-95');
+                promptEl.classList.add('opacity-100', 'scale-100');
+            } else {
+                activeStationNear = null;
+                promptEl.classList.remove('opacity-100', 'scale-100');
+                promptEl.classList.add('opacity-0', 'scale-95');
+            }
+        }
+
+        /* =========================================================================
+           5. INTERACTIVE SURVEY MODAL SYSTEM
+           ========================================================================= */
+        function openStationModal(domain) {
+            isModalOpen = true;
+            document.exitPointerLock();
+            audio.playInteract();
+
+            visitedStationsSet.add(domain.code);
+            updateProgressHUD();
+
+            const modal = document.getElementById('terminal-modal');
+            const badge = document.getElementById('modal-theme-badge');
+            const title = document.getElementById('modal-station-title');
+            const desc = document.getElementById('modal-station-desc');
+            const container = document.getElementById('survey-questions-container');
+
+            badge.innerText = domain.code;
+            badge.style.borderColor = domain.hex;
+            badge.style.color = domain.hex;
+            title.innerText = domain.title;
+            desc.innerText = domain.desc;
+
+            // Render Questions List
+            container.innerHTML = '';
+            domain.questions.forEach(q => {
+                const currentVal = userResponses[q.id] || 3;
+                const qEl = document.createElement('div');
+                qEl.className = "bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3";
+                qEl.innerHTML = `
+                    <div class="flex justify-between items-start gap-4">
+                        <span class="font-orbitron text-xs font-bold text-cyan-400">Q${q.id}</span>
+                        <p class="text-xs md:text-sm text-slate-200 font-medium flex-1">${q.text}</p>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-800/80">
+                        <span class="text-[11px] text-slate-400">Strongly Disagree</span>
+                        <div class="flex gap-2">
+                            ${[1, 2, 3, 4, 5].map(val => `
+                                <button type="button" 
+                                    onclick="setQuestionRating(${q.id}, ${val})" 
+                                    id="q-${q.id}-btn-${val}"
+                                    class="w-8 h-8 rounded-lg font-orbitron text-xs font-bold transition ${currentVal === val ? 'bg-cyan-500 text-slate-950 shadow-[0_0_10px_#38bdf8]' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                                    ${val}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <span class="text-[11px] text-slate-400">Strongly Agree</span>
+                    </div>
+                `;
+                container.appendChild(qEl);
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        window.setQuestionRating = function(qId, value) {
+            userResponses[qId] = value;
+            audio.playTone(350 + value * 60, 0.05, 'sine', 0.05);
+
+            // Update UI Button Styles for this question
+            for (let v = 1; v <= 5; v++) {
+                const btn = document.getElementById(`q-${qId}-btn-${v}`);
+                if (btn) {
+                    if (v === value) {
+                        btn.className = "w-8 h-8 rounded-lg font-orbitron text-xs font-bold transition bg-cyan-500 text-slate-950 shadow-[0_0_10px_#38bdf8]";
+                    } else {
+                        btn.className = "w-8 h-8 rounded-lg font-orbitron text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700";
+                    }
+                }
+            }
+            updateProgressHUD();
+        };
+
+        function closeModal() {
+            const modal = document.getElementById('terminal-modal');
+            modal.classList.add('hidden');
+            isModalOpen = false;
+        }
+
+        function updateProgressHUD() {
+            const totalQuestions = 30;
+            const answeredCount = Object.keys(userResponses).length;
+            const percent = Math.round((answeredCount / totalQuestions) * 100);
+
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('completed-count').innerText = answeredCount;
+            document.getElementById('visited-stations').innerText = `${visitedStationsSet.size}/7`;
+        }
+
+        /* =========================================================================
+           6. THESIS DEFENSE MODE & DATA CHARTS
+           ========================================================================= */
+        let meanChart, toolsChart, originalityChart;
+
+        function toggleDefenseDashboard(show) {
+            isDefenseMode = show;
+            const db = document.getElementById('defense-dashboard');
+            if (show) {
+                document.exitPointerLock();
+                db.classList.remove('hidden');
+                audio.playSuccess();
+                renderThesisCharts();
+            } else {
+                db.classList.add('hidden');
+            }
+        }
+
+        function renderThesisCharts() {
+            // Calculate Average Likert Scores per Research Domain
+            const domainMeans = RESEARCH_DOMAINS.map(domain => {
+                const scores = domain.questions.map(q => userResponses[q.id] || 4);
+                const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+                return parseFloat(avg.toFixed(2));
+            });
+
+            // Destroy existing charts if re-rendering
+            if (meanChart) meanChart.destroy();
+            if (toolsChart) toolsChart.destroy();
+            if (originalityChart) originalityChart.destroy();
+
+            // Chart 1: Domain Mean Comparison
+            const ctx1 = document.getElementById('themeMeanChart').getContext('2d');
+            meanChart = new Chart(ctx1, {
+                type: 'radar',
+                data: {
+                    labels: ['UP (Useful)', 'CR (Creativity)', 'LS (Learning)', 'DQ (Quality)', 'SI (Social)', 'AF (Access)', 'ET (Ethics)'],
+                    datasets: [{
+                        label: 'Mean Likert Rating (1-5)',
+                        data: domainMeans,
+                        backgroundColor: 'rgba(56, 189, 248, 0.25)',
+                        borderColor: '#38bdf8',
+                        pointBackgroundColor: '#38bdf8',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#94a3b8', font: { family: 'Orbitron', size: 10 } },
+                            ticks: { color: '#64748b', backdropColor: 'transparent', min: 1, max: 5 }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Chart 2: Primary AI Tool Adoption (Thesis Survey Sample)
+            const ctx2 = document.getElementById('aiToolsChart').getContext('2d');
+            toolsChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ChatGPT', 'Canva AI', 'Google Gemini', 'Adobe Firefly', 'Midjourney/Other'],
+                    datasets: [{
+                        data: [42, 28, 15, 10, 5],
+                        backgroundColor: ['#38bdf8', '#818cf8', '#34d399', '#fbbf24', '#f472b6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // Chart 3: AI Output Ratio vs Originality
+            const ctx3 = document.getElementById('originalityChart').getContext('2d');
+            originalityChart = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['0-25% AI', '26-50% AI', '51-75% AI', '76-90% AI'],
+                    datasets: [{
+                        label: 'Student Percentage',
+                        data: [45, 35, 14, 6],
+                        backgroundColor: '#818cf8',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        /* 3D Guided Exhibition Camera Fly-through Tour Mode */
+        function startCameraTour() {
+            toggleDefenseDashboard(false);
+            cameraTouring = true;
+            tourProgress = 0;
+        }
+
+        /* =========================================================================
+           7. MAIN ANIMATION LOOP & EVENT BINDINGS
+           ========================================================================= */
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // Update Player Movement & Interactions
+            updatePlayer(delta);
+
+            // Floating Artwork Visual Animation in 3D Space
+            stationMeshes.forEach((st, idx) => {
+                if (st.artMesh) {
+                    st.artMesh.position.y = 3.2 + Math.sin(time * 2 + idx) * 0.15;
+                    st.artMesh.rotation.y = Math.sin(time * 0.8 + idx) * 0.2;
+                }
+            });
+
+            // Central Hologram Rotation
+            const diamond = scene.getObjectByName('centerDiamond');
+            if (diamond) {
+                diamond.rotation.y = time * 0.6;
+                diamond.rotation.x = Math.sin(time * 0.4) * 0.3;
+            }
+
+            // Automated Guided Camera Fly-through Animation
+            if (cameraTouring) {
+                tourProgress += delta * 0.15;
+                const radius = 22;
+                camera.position.x = Math.cos(tourProgress) * radius;
+                camera.position.z = Math.sin(tourProgress) * radius;
+                camera.position.y = 4 + Math.sin(tourProgress * 2) * 1.5;
+                camera.lookAt(0, 2, 0);
+
+                if (tourProgress >= Math.PI * 2) {
+                    cameraTouring = false; // Tour complete
+                    player.position.copy(camera.position);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /* DOM Event Handlers Binding */
+        window.onload = function() {
+            init3D();
+            animate();
+            lucide.createIcons();
+
+            // UI Button Listeners
+            document.getElementById('defense-mode-btn').addEventListener('click', () => toggleDefenseDashboard(true));
+            document.getElementById('close-defense-btn').addEventListener('click', () => toggleDefenseDashboard(false));
+            document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+            document.getElementById('save-survey-btn').addEventListener('click', () => {
+                audio.playSuccess();
+                closeModal();
+            });
+            document.getElementById('camera-tour-btn').addEventListener('click', startCameraTour);
+
+            // Audio Toggle
+            document.getElementById('toggle-audio-btn').addEventListener('click', () => {
+                audio.muted = !audio.muted;
+                const icon = document.getElementById('audio-icon');
+                if (audio.muted) {
+                    icon.setAttribute('data-lucide', 'volume-x');
+                } else {
+                    icon.setAttribute('data-lucide', 'volume-2');
+                    audio.init();
+                }
+                lucide.createIcons();
+            });
+        };
+    </script>
+</body>
+</html>
